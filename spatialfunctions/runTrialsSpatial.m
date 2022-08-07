@@ -1,0 +1,795 @@
+
+function runTrialsSpatial(exptPhase)
+
+global MainWindow scrCentre DATA datafilename
+global keyCounterbal
+global distract_col
+global white black gray yellow
+global bigMultiplier smallMultiplier totalPay
+global zeroPayRT oneMSvalue
+global stim_size stim_pen nf
+global currentLevel
+
+global realVersion reversalVersion
+
+corrStdDur = 1.6;
+errStdDur = 2.1;
+
+if realVersion
+    if exptPhase == 1
+        timeoutDuration = 9999;     % No timeout in practice
+    else
+        timeoutDuration = 2;     % 2 timeout duration
+    end
+    
+    iti = 0.6;            % 0.6
+    
+    if reversalVersion
+        correctFBDuration = [0.7, corrStdDur, corrStdDur, corrStdDur];       % [0.7, 2]  Practice phase feedback duration  1.4 Main task feedback duration 3. Extinction Phase FB duration
+        errorFBDuration = [0.7, errStdDur, errStdDur, errStdDur];       % [0.7, 2.5]  Practice phase feedback duration  2 Main task feedback duration
+    else
+        correctFBDuration = [0.7, corrStdDur, corrStdDur, corrStdDur];       % [0.7, 2]  Practice phase feedback duration  1.4 Main task feedback duration 3. Extinction Phase FB duration
+        errorFBDuration = [0.7, errStdDur, errStdDur, errStdDur];       % [0.7, 2.5]  Practice phase feedback duration  2 Main task feedback duration
+    end
+    
+    fixationDuration = 0.5;     % 0.5 Fixation duration
+    
+    initialPause = 1.5;   % 1.5
+    breakDuration = 10;  % 10
+    
+    
+    exptTrialsPerBlock = 24;    % 24. This is used to ensure people encounter the right number of each of the different types of distractors.
+    NumRareDistract = 4;       % 4. So 4 trials per block with rare distractor type 3 (grey).
+    
+    exptTrialsBeforeBreak = 1 * exptTrialsPerBlock;     % 2 * exptTrialsPerBlock = 48 (now 24)
+    
+    pracTrials = 10;    % 10
+    exptTrials = 1 * exptTrialsBeforeBreak;    % i.e. 6 sets of 48 trials = 288 (now 24)
+    numExtinctionTrials = 1 * exptTrialsBeforeBreak;  % 2 sets of 48 trials = 96 (now 24)
+
+else
+    
+    if exptPhase == 1
+        timeoutDuration = 9999;     % No timeout in practice
+    else
+        timeoutDuration = 2;     % 2 timeout duration
+    end
+    
+    iti = 0.6;            % 0.6
+    
+    if reversalVersion
+        correctFBDuration = [0.7, 1.8, 1.8, 1.8];       % [0.7, 2]  Practice phase feedback duration  1.4 Main task feedback duration 3. Extinction Phase FB duration
+        errorFBDuration = [0.7, 2.3, 2.3, 2.3];       % [0.7, 2.5]  Practice phase feedback duration  2 Main task feedback duration
+    else
+        correctFBDuration = [0.7, 1.8, 1, 1.8];       % [0.7, 2]  Practice phase feedback duration  1.4 Main task feedback duration 3. Extinction Phase FB duration
+        errorFBDuration = [0.7, 2.3, 1, 2.3];       % [0.7, 2.5]  Practice phase feedback duration  2 Main task feedback duration
+    end
+    
+    fixationDuration = 0.5;     % 0.5 Fixation duration
+    
+    initialPause = 1.5;   % 1.5
+    breakDuration = 10;  % 10
+    
+    
+    exptTrialsPerBlock = 24;    % 24. This is used to ensure people encounter the right number of each of the different types of distractors.
+    NumRareDistract = 4;       % 4. So 4 trials per block with rare distractor type 3 (grey).
+    
+    exptTrialsBeforeBreak = 4;     % 2 * exptTrialsPerBlock = 48
+    
+    pracTrials = 10;    % 10
+    exptTrials = 1 * exptTrialsBeforeBreak;    % i.e. 6 sets of 48 trials = 288 
+    numExtinctionTrials = 1 * exptTrialsBeforeBreak;  % 2 sets of 48 trials = 96
+    
+end
+
+if reversalVersion
+    totalRewardBlocks = (exptTrials + numExtinctionTrials)/exptTrialsBeforeBreak;
+else
+    totalRewardBlocks = exptTrials/exptTrialsBeforeBreak;
+end
+
+
+
+
+
+stimLocs = 6;       % Number of stimulus locations
+lineLength = 30;    % Line of target line segments
+line_pen = 6;       % Pen width of line segments
+
+circ_diam = 200;    % Diameter of imaginary circle on which stimuli are positioned
+fix_size = 20;      % This is the side length of the fixation cross
+
+bonusWindowWidth = 400;
+bonusWindowHeight = 100;
+bonusWindowTop = 260;
+
+roundRT = 0;
+
+winMultiplier = zeros(3);
+if exptPhase == 3 && reversalVersion == true % if reversal version then in phase 3, distractor type 1 is now low val and 2 is high val.
+    winMultiplier = zeros(3);
+    winMultiplier(1) = smallMultiplier;     % Common distractor associated with small win
+    winMultiplier(2) = bigMultiplier;         % Common distractor associated with big win    
+    winMultiplier(3) = smallMultiplier;         % All gray circles, small win
+else   % for every other scenario then everything is just normal! 
+    winMultiplier(1) = bigMultiplier;         % Common distractor associated with big win
+    winMultiplier(2) = smallMultiplier;     % Common distractor associated with small win
+    winMultiplier(3) = smallMultiplier;         % All gray circles, small win
+end
+
+% This plots the points of a large diamond, that will be filled with colour
+d_pts = [stim_size/2, 0;
+    stim_size, stim_size/2;
+    stim_size/2, stim_size;
+    0, stim_size/2];
+
+% This plots the points of a smaller diamond that will be drawn in black
+% inside the previous one to make a frame (this is a pain, but you can't
+% use FramePoly as it has limits on allowable pen widths). The first line is
+% Pythagoras to make sure the pen width is correct.
+d_inset = sqrt(2*(stim_pen^2));
+small_d_pts = [stim_size/2, d_inset;
+    stim_size - d_inset, stim_size/2;
+    stim_size/2, stim_size - d_inset;
+    d_inset, stim_size/2];
+
+% Create an offscreen window, and draw the two diamonds onto it to create a diamond-shaped frame.
+diamondTex = Screen('OpenOffscreenWindow', MainWindow, black, [0 0 stim_size stim_size]);
+Screen('FillPoly', diamondTex, gray, d_pts);
+Screen('FillPoly', diamondTex, black, small_d_pts);
+
+% Create an offscreen window, and draw the fixation cross in it.
+fixationTex = Screen('OpenOffscreenWindow', MainWindow, black, [0 0 fix_size fix_size]);
+Screen('DrawLine', fixationTex, white, 0, fix_size/2, fix_size, fix_size/2, 2);
+Screen('DrawLine', fixationTex, white, fix_size/2, 0, fix_size/2, fix_size, 2);
+
+
+% Create a rect for the fixation cross
+fixRect = [scrCentre(1) - fix_size/2    scrCentre(2) - fix_size/2   scrCentre(1) + fix_size/2   scrCentre(2) + fix_size/2];
+
+% The oblique line segments need to have the same length as the vertical /
+% horizontal target lines. Use Pythagoras to work out vertical and
+% horizontal displacements of these lines (which are equal because lines
+% are at 45 deg).
+
+obliqueDisp = round(sqrt(lineLength * lineLength / 2));
+
+
+
+% Create a matrix containing the six stimulus locations, equally spaced
+% around an imaginary circle of diameter circ_diam
+% Also create sets of points defining the positions of the oblique and
+% target (horizontal / vertical) lines that appear inside each stimulus
+stimRect = zeros(stimLocs,4);
+lineRight = zeros(stimLocs,4);
+lineLeft = zeros(stimLocs,4);
+lineVert = zeros(stimLocs,4);
+lineHorz = zeros(stimLocs,4);
+lineOrientation = zeros(1,stimLocs);   % Used below; preallocating for speed
+
+for i = 0 : stimLocs - 1    % Define rects for stimuli and line segments
+    stimRect(i+1,:) = [scrCentre(1) - circ_diam * sin(i*2*pi/stimLocs) - stim_size / 2   scrCentre(2) - circ_diam * cos(i*2*pi/stimLocs) - stim_size / 2   scrCentre(1) - circ_diam * sin(i*2*pi/stimLocs) + stim_size / 2   scrCentre(2) - circ_diam * cos(i*2*pi/stimLocs) + stim_size / 2];
+    
+    lineVert(i+1,:) = [stimRect(i+1,1) + stim_size/2   stimRect(i+1,2) + (stim_size-lineLength)/2    stimRect(i+1,1) + stim_size/2    stimRect(i+1,2) + stim_size/2 + lineLength/2];
+    lineHorz(i+1,:) = [stimRect(i+1,1) + (stim_size-lineLength)/2   stimRect(i+1,2) + stim_size/2    stimRect(i+1,1) + stim_size/2 + lineLength/2    stimRect(i+1,2) + stim_size/2];
+    
+    lineRight(i+1,:) = [stimRect(i+1,1) + (stim_size-obliqueDisp)/2   stimRect(i+1,2) + stim_size/2 + obliqueDisp/2   stimRect(i+1,1) + stim_size/2 + obliqueDisp/2   stimRect(i+1,2) + (stim_size-obliqueDisp)/2];
+    lineLeft(i+1,:) = [stimRect(i+1,1) + (stim_size-obliqueDisp)/2   stimRect(i+1,2) + (stim_size-obliqueDisp)/2   stimRect(i+1,1) + stim_size/2 + obliqueDisp/2   stimRect(i+1,2) + stim_size/2 + obliqueDisp/2];
+end
+
+
+% Create a full-size offscreen window that will be used for drawing all
+% stimuli and targets (and fixation cross) into
+stimWindow = Screen('OpenOffscreenWindow', MainWindow, black);
+
+
+% Create a small offscreen window and draw the bonus multiplier into it
+if exptPhase == 2
+    bonusTex = Screen('OpenOffscreenWindow', MainWindow, yellow, [0 0 bonusWindowWidth bonusWindowHeight]);
+    %Screen('FrameRect', bonusTex, yellow, [], 8);
+    Screen('TextSize', bonusTex, 40);
+    Screen('TextFont', bonusTex, 'Calibri');
+    Screen('TextStyle', bonusTex, 0);
+    DrawFormattedText(bonusTex, [num2str(bigMultiplier), ' x  bonus trial!'], 'center', 'center', black);
+end
+
+if exptPhase == 4
+    bonusTex = Screen('OpenOffscreenWindow', MainWindow, [255, 0, 0], [0 0 bonusWindowWidth bonusWindowHeight]);
+    %Screen('FrameRect', bonusTex, yellow, [], 8);
+    Screen('TextSize', bonusTex, 40);
+    Screen('TextFont', bonusTex, 'Calibri');
+    Screen('TextStyle', bonusTex, 0);
+    DrawFormattedText(bonusTex, [num2str(bigMultiplier), ' x  penalty trial!'], 'center', 'center', black);
+end
+
+
+
+if exptPhase == 1
+    numTrials = pracTrials;
+    
+    distractArray = zeros(1, pracTrials);
+    distractArray(1 : pracTrials) = 5;
+    
+elseif exptPhase == 2 || exptPhase == 4
+    numTrials = exptTrials;
+    
+    distractArray = zeros(1,exptTrialsPerBlock);
+    distractArray(1 : NumRareDistract) = 3;
+    distractArray(1 + NumRareDistract : NumRareDistract + (exptTrialsPerBlock - NumRareDistract) / 2) = 1;
+    distractArray(1 + NumRareDistract + (exptTrialsPerBlock - NumRareDistract) / 2 : exptTrialsPerBlock) = 2;
+    
+elseif exptPhase ==3 %this is either extinction or reversal
+    numTrials = numExtinctionTrials; %or reversal trials!
+    distractArray = zeros(1,exptTrialsPerBlock);
+    distractArray(1 : NumRareDistract) = 3;
+    distractArray(1 + NumRareDistract : NumRareDistract + (exptTrialsPerBlock - NumRareDistract) / 2) = 1;
+    distractArray(1 + NumRareDistract + (exptTrialsPerBlock - NumRareDistract) / 2 : exptTrialsPerBlock) = 2;
+end
+
+
+shuffled_distractArray = shuffleTrialorder(distractArray, exptPhase);   % Calls a function to shuffle trials
+
+trialCounter = 0;
+block = 1;
+trials_since_break = 0;
+
+if realVersion == 1  % real version, no skippping
+    RestrictKeysForKbCheck([KbName('c'), KbName('m')]);   % Only accept keypresses from keys C and M
+    
+else  % test version, contains skips
+    RestrictKeysForKbCheck([KbName('c'), KbName('m'), KbName('escape'), KbName('p')]);
+    % c and m are responses, escape will exit the program, p will skip to
+    % the end of the block
+    
+end
+
+
+WaitSecs(initialPause);
+
+for trial = 1 : numTrials
+    
+    trialCounter = trialCounter + 1;    % This is used to set distractor type below; it can cycle independently of trial
+    trials_since_break = trials_since_break + 1;
+    
+    targetLoc = randi(stimLocs);
+    
+    distractLoc = targetLoc;
+    while distractLoc == targetLoc
+        distractLoc = randi(stimLocs);
+    end
+    
+    targetType = 1 + round(rand);   % Gives random number, either 1 or 2
+    distractType = shuffled_distractArray(trialCounter);
+    
+    fix_pause = fixationDuration;
+    
+    Screen('FillRect', stimWindow, black);  % Clear the screen from the previous trial by drawing a black rectangle over the whole thing
+    Screen('DrawTexture', stimWindow, fixationTex, [], fixRect);
+    for i = 1 : stimLocs
+        Screen('FrameOval', stimWindow, gray, stimRect(i,:), stim_pen, stim_pen);       % Draw stimulus circles
+    end
+    Screen('FrameOval', stimWindow, distract_col(distractType,:), stimRect(distractLoc,:), stim_pen, stim_pen);      % Draw distractor circle
+    
+    for i = 1 : stimLocs
+        lineOrientation(i) = round(rand);
+        if lineOrientation(i) == 0
+            Screen('DrawLine', stimWindow, white, lineLeft(i,1), lineLeft(i,2), lineLeft(i,3), lineLeft(i,4), line_pen);
+        else
+            Screen('DrawLine', stimWindow, white, lineRight(i,1), lineRight(i,2), lineRight(i,3), lineRight(i,4), line_pen);
+        end
+    end
+    
+    Screen('DrawTexture', stimWindow, diamondTex, [], stimRect(targetLoc,:));
+    
+    if targetType == 1
+        Screen('DrawLine', stimWindow, white, lineHorz(targetLoc,1), lineHorz(targetLoc,2), lineHorz(targetLoc,3), lineHorz(targetLoc,4), line_pen);
+    else
+        Screen('DrawLine', stimWindow, white, lineVert(targetLoc,1), lineVert(targetLoc,2), lineVert(targetLoc,3), lineVert(targetLoc,4), line_pen);
+    end
+    
+    
+    Screen('FillRect',MainWindow, black);
+    Screen('Flip', MainWindow);     % Clear screen
+    WaitSecs(iti);
+    
+    Screen('DrawTexture', MainWindow, fixationTex, [], fixRect);
+    Screen('Flip', MainWindow);     % Present fixation cross
+    WaitSecs(fix_pause);
+    
+    
+    Screen('DrawTexture', MainWindow, stimWindow);
+    rtStart = Screen('Flip', MainWindow);      % Present stimuli, and record start time (st) when they are presented.
+    Image = Screen('GetImage', MainWindow); %this would go after the screen that you want to capture is flipped to the monitor
+    imwrite(Image, 'TRIAL.jpeg');
+    [keyCode, rtEnd, searchTimeout] = accKbWait(rtStart, timeoutDuration);
+    
+    keyCodePressed = find(keyCode, 1, 'first');
+    keyPressed = KbName(keyCodePressed);    % Get name of key that was pressed
+        
+    rt = 1000 * (rtEnd - rtStart);      % Response time in ms
+    
+    correct = 0;
+    timeout = 0;
+    
+    % these can only be pressed in the debugging version
+    if keyPressed == 'p' % skip to end of phase
+
+        break  % exit trial loop
+
+    elseif strcmp(keyPressed, 'escape')
+        sca;
+        error('user terminated the program');
+    else
+        % do nothing
+    end
+    
+    
+    trialPay = 0;
+    
+    if searchTimeout      % No key pressed (i.e. timeout)
+        timeout = 1;
+        trialPay = 0;
+        %Beeper;
+        fbStr = 'TOO SLOW\n\nPlease try to respond faster';
+        
+    else
+        
+        fbStr = 'ERROR';
+        
+        if keyPressed == 'c'
+            if keyCounterbal == targetType     % If C = horizontal and line is horizontal, or if C = vertical and line is vertical
+                correct = 1;
+                fbStr = 'correct';
+            end
+            
+        elseif keyPressed == 'm'
+            if keyCounterbal ~= targetType     % If M = horizontal and line is horizontal, or if M = vertical and line is vertical
+                correct = 1;
+                fbStr = 'correct';
+            end
+        
+        end
+        
+        roundRT = round(rt);    % Round RT to nearest integer
+
+        if exptPhase == 2 || (exptPhase==3 && reversalVersion ==true)       % If this is NOT practice and if this is NOT extinction phase
+            
+            if roundRT >= zeroPayRT
+                trialPay = 0;
+            else
+                trialPay = round((zeroPayRT - roundRT) * oneMSvalue * winMultiplier(distractType));
+                %trialPay = round(trialPay * 100) / 100;     % Round amount earned to nearest .01c
+            end
+            
+            if winMultiplier(distractType) == bigMultiplier
+                Screen('DrawTexture', MainWindow, bonusTex, [], [scrCentre(1)-bonusWindowWidth/2   bonusWindowTop   scrCentre(1)+bonusWindowWidth/2    bonusWindowTop+bonusWindowHeight]);
+            end
+            
+%             rtStr = ['RT = ', num2str(roundRT), ' milliseconds'];
+            
+            if correct == 0
+                lose = 0;
+                totalPay = totalPay - lose;
+                fbStr = ['Lose ', char(nf.format(lose)), ' points'];
+                %Beeper;
+                Screen('TextSize', MainWindow, 48);
+                DrawFormattedText(MainWindow, 'ERROR', 'center', bonusWindowTop + bonusWindowHeight + 100 , white);
+                trialPay = lose;   % This is so it records correctly in the data file
+                
+            elseif correct == 1
+                totalPay = totalPay + trialPay;
+                fbStr = ['+', char(nf.format(trialPay)), ' points'];
+            end
+            
+            Screen('TextSize', MainWindow, 32);
+%             DrawFormattedText(MainWindow, format_payStr(totalPay + starting_total), 'center', 740, white);
+            
+        end
+
+        if exptPhase == 4
+            if roundRT >= zeroPayRT
+                trialPay = 0;
+            else
+                trialPay = round((zeroPayRT - roundRT) * oneMSvalue * winMultiplier(distractType));
+                %trialPay = round(trialPay * 100) / 100;     % Round amount earned to nearest .01c
+            end
+            
+            if winMultiplier(distractType) == bigMultiplier
+                Screen('DrawTexture', MainWindow, bonusTex, [], [scrCentre(1)-bonusWindowWidth/2   bonusWindowTop   scrCentre(1)+bonusWindowWidth/2    bonusWindowTop+bonusWindowHeight]);
+            end
+            
+%             rtStr = ['RT = ', num2str(roundRT), ' milliseconds'];
+            
+            if correct == 0
+                totalPay = totalPay - trialPay;
+                fbStr = ['Lose ', char(nf.format(trialPay)), ' points'];
+                %Beeper;
+                Screen('TextSize', MainWindow, 48);
+                DrawFormattedText(MainWindow, 'ERROR', 'center', bonusWindowTop + bonusWindowHeight + 100 , white);
+                trialPay = -trialPay;   % This is so it records correctly in the data file
+                
+            elseif correct == 1
+                gain = 0;
+                totalPay = totalPay + gain;
+                fbStr = ['+', char(nf.format(gain)), ' points'];
+            end
+            
+            Screen('TextSize', MainWindow, 32);
+%             DrawFormattedText(MainWindow, format_payStr(totalPay + starting_total), 'center', 740, white);
+
+        end
+    end
+    
+    
+    Screen('TextSize', MainWindow, 48);
+    DrawFormattedText(MainWindow, fbStr, 'center', 'center', yellow);
+    
+    
+    Screen('Flip', MainWindow);
+    Image = Screen('GetImage', MainWindow); %this would go after the screen that you want to capture is flipped to the monitor
+    imwrite(Image, 'feedback.jpeg');
+    if correct == 0
+        WaitSecs(correctFBDuration(exptPhase));
+    else
+        WaitSecs(errorFBDuration(exptPhase));
+    end
+    
+    Screen('Flip', MainWindow);
+    WaitSecs(iti);
+    
+    trialData = [block, trial, trialCounter, trials_since_break, targetLoc, targetType, distractLoc, distractType, timeout, correct, rt, roundRT, winMultiplier(distractType), trialPay, totalPay, currentLevel];
+    if trial == 1
+        DATA.trialInfo(exptPhase).trialData = zeros(numTrials, size(trialData,2));
+    end
+    DATA.trialInfo(exptPhase).trialData(trial,:) = trialData(:);
+
+    
+    
+    if exptPhase > 1
+        
+        if mod(trial, exptTrialsPerBlock) == 0
+            shuffled_distractArray = shuffleTrialorder(distractArray, exptPhase);     % Re-shuffle order of distractors
+            trialCounter = 0;
+            block = block + 1;
+        end
+        
+        if mod(trial, exptTrialsBeforeBreak) == 0
+            
+            if trial == numTrials                
+                lastBlock = 1;
+            else
+                lastBlock = 0;
+            end
+            
+            save(datafilename, 'DATA');
+            
+            if reversalVersion    % If it's the reversal version, every break is a medal break
+                medalBreak(initialPause, lastBlock, totalRewardBlocks);
+                
+            else        % If it's the extinction version, give medal breaks during training and boring breaks in extinction
+                
+                if exptPhase == 2 || exptPhase == 4
+                    medalBreak(initialPause, lastBlock, totalRewardBlocks);
+                else
+                    if lastBlock == 0
+                        extinctionBreak(initialPause, breakDuration);
+                    end
+                end
+                                
+            end
+            
+            trials_since_break = 0;
+        end
+        
+    end
+    
+    save(datafilename, 'DATA');
+end
+
+
+Screen('Close', diamondTex);
+Screen('Close', fixationTex);
+Screen('Close', stimWindow);
+
+
+end
+
+
+
+function shuffArray = shuffleTrialorder(inArray,ePhase)
+
+acceptShuffle = 0;
+
+while acceptShuffle == 0
+    shuffArray = inArray(randperm(length(inArray)));     % Shuffle order of distractors
+    acceptShuffle = 1;   % Shuffle always OK in practice phase
+    if ePhase > 1 
+        if shuffArray(1) > 2 || shuffArray(2) > 2
+            acceptShuffle = 0;   % Reshuffle if either of the first two trials (which may well be discarded) are rare types
+        end
+    end
+end
+
+end
+
+
+
+function aStr = format_payStr(ii) %#ok<DEFNU>
+
+global nf
+
+if ii < 0
+    aStr = [char(nf.format(ii)), ' total'];
+else
+    aStr = [char(nf.format(ii)), ' total'];
+end
+
+end
+
+
+
+
+function medalBreak(initialPause, lastBlock, totalRewardBlocks)
+
+global MainWindow white yellow black scrCentre red
+global totalPay
+global currentLevel currentMedal
+global numMedals medalRank
+
+goodBlockScore = 10000; % This would be a really good block score
+
+pointsPerLevel = goodBlockScore * totalRewardBlocks / 60;   % Divided by 60 as Elite is level 60
+
+
+levelsPerMedal = 10;
+
+previousLevel = currentLevel;
+if previousLevel < 0
+    previousLevel = 0;
+end
+
+currentLevel = floor(totalPay/pointsPerLevel);
+
+
+previousMedal = currentMedal;
+
+if previousMedal < 0
+    previousMedal = 0;
+end
+
+currentMedal = floor(currentLevel/levelsPerMedal);
+if currentMedal > numMedals
+    currentMedal = numMedals;
+end
+
+oldFont = Screen('TextFont', MainWindow);
+oldSize = Screen('TextSize', MainWindow);
+oldStyle = Screen('TextStyle', MainWindow);
+
+Screen('TextSize', MainWindow, 68);
+Screen('TextStyle', MainWindow, 1);
+DrawFormattedText(MainWindow, ['So far you have earned ', separatethousands(totalPay, ','), ' points.\nWell done!'], 'center', 350, yellow, [], [], [], 1.8);
+Screen('Flip', MainWindow, [], 1);
+WaitSecs(1);
+Screen('TextSize', MainWindow, 54);
+Screen('TextStyle', MainWindow, 1);
+DrawFormattedText(MainWindow, 'Press space to level up...', 'center', 680, white);
+Screen('Flip', MainWindow);
+RestrictKeysForKbCheck(KbName('Space'));   % Only accept spacebar
+KbWait([], 2);
+Screen('Flip', MainWindow);
+
+
+Screen('TextFont', MainWindow, 'Sommet Black');
+Screen('TextSize', MainWindow, 72);
+Screen('TextStyle', MainWindow, 0);
+
+pointsTextTop = 300;
+levelTextTop = 450;
+medalTop = 670;
+
+breakWindow = Screen('OpenOffscreenWindow', MainWindow, black);
+Screen('BlendFunction', breakWindow, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
+
+Screen('TextFont', breakWindow, Screen('TextFont', MainWindow));
+Screen('TextStyle', breakWindow, Screen('TextStyle', MainWindow));
+
+Screen('TextSize', breakWindow, 48);
+DrawFormattedText(breakWindow, ['Points earned: ', separatethousands(totalPay, ',')], 'center', pointsTextTop, white);
+
+Screen('TextSize', breakWindow, Screen('TextSize', MainWindow));
+
+imgFolder = 'spatialfunctions\medals\';
+imgMatrix = imread([imgFolder, 'level_up.jpg'], 'jpg');
+imgMatrixRect = [0,0,size(imgMatrix, 2), size(imgMatrix, 1)];
+Screen('PutImage', breakWindow, imgMatrix, CenterRectOnPoint(imgMatrixRect, scrCentre(1), 80)); % put image on screen
+
+medalTex = zeros(numMedals,1);
+for ii = 1 : numMedals
+    medalMatrix = imread([imgFolder, 'medal', num2str(ii),'.jpg'], 'jpg');
+    medalRect = [0,0,size(medalMatrix, 2), size(medalMatrix, 1)];
+    medalTex(ii) = Screen('MakeTexture', MainWindow, medalMatrix);
+    Screen('BlendFunction', medalTex(ii), 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
+end
+
+clear imgMatrix medalMatrix
+
+scrWidth = scrCentre(1)*2;
+edgeGap = 150;
+
+medalGap = round((scrWidth - edgeGap*2 - medalRect(3)*numMedals)/(numMedals - 1));
+
+medalPos = zeros(numMedals, 1);
+for ii = 1 : numMedals
+    medalPos(ii) = edgeGap + medalRect(3)/2 + (ii-1)*(medalGap + medalRect(3));
+    if ii <= previousMedal
+        medalAlpha = 1;
+    else
+        medalAlpha = 0.3;
+    end
+    Screen('DrawTexture', breakWindow, medalTex(ii), [], CenterRectOnPoint(medalRect, medalPos(ii), medalTop), [], [], medalAlpha);
+end
+
+
+Screen('DrawTexture', MainWindow, breakWindow);
+DrawFormattedText(MainWindow, strcat('Expertise Level:', sprintf(' %02d', previousLevel)), 'center', levelTextTop, yellow);
+Screen('Flip', MainWindow);
+
+WaitSecs(01);
+
+numLoops = currentLevel - previousLevel;
+
+
+st = GetSecs;
+for loopNum = 1 : numLoops
+    Screen('DrawTexture', MainWindow, breakWindow);
+    DrawFormattedText(MainWindow, strcat('Expertise Level:', sprintf(' %02d', previousLevel + loopNum)), 'center', levelTextTop, yellow);
+    loopTime = min([0.8/(numLoops - loopNum + 0.8), 0.3]);
+    st = Screen('Flip', MainWindow, st + loopTime);
+end
+
+
+DrawFormattedText(breakWindow, strcat('Expertise Level:', sprintf(' %02d', currentLevel)), 'center', levelTextTop, yellow);
+
+Screen('DrawTexture', MainWindow, breakWindow);
+Screen('Flip', MainWindow);
+
+
+WaitSecs(1);
+
+
+st = GetSecs;
+numMedalLoops = 50;
+
+if currentMedal > previousMedal
+    for ii = 1 : (currentMedal - previousMedal)
+        
+        for medalLoop = 5 : numMedalLoops
+            Screen('DrawTexture', MainWindow, breakWindow);
+            
+            medalScale = (1 + numMedalLoops - medalLoop)^0.2;
+            drawMedalRect = medalRect * medalScale;
+            
+            Screen('DrawTexture', MainWindow, medalTex(previousMedal+ii), [], CenterRectOnPoint(drawMedalRect, medalPos(previousMedal+ii), medalTop), [], [], medalLoop*1/numMedalLoops);
+            st = Screen('Flip', MainWindow, st + 0.015);
+            
+        end
+        
+        
+        Screen('DrawTexture', breakWindow, medalTex(previousMedal+ii), [], CenterRectOnPoint(medalRect, medalPos(previousMedal+ii), medalTop));
+        
+        WaitSecs(0.3);
+        
+    end
+    
+    Screen('DrawTexture', breakWindow, medalTex(previousMedal+ii), [], CenterRectOnPoint(medalRect, medalPos(previousMedal+ii), medalTop));
+    
+end
+
+
+Screen('DrawTexture', MainWindow, breakWindow);
+Screen('TextSize', MainWindow, 64);
+Screen('TextStyle', MainWindow, 1);
+if currentMedal > 0
+    tempStr = char(medalRank(currentMedal));
+else
+    tempStr = 'NONE';
+end
+
+DrawFormattedText(MainWindow, ['RANK:  ', tempStr], 'center', medalTop + 210, yellow);
+    
+Screen('Flip', MainWindow, [], 1);
+
+WaitSecs(2);
+
+Screen('TextFont', MainWindow, oldFont);
+Screen('TextSize', MainWindow, 36);
+Screen('TextStyle', MainWindow, 0);
+DrawFormattedText(MainWindow, 'Press any key to continue', 'center', 1020, white);
+Screen('Flip', MainWindow);
+
+RestrictKeysForKbCheck([]); % Re-enable all keys
+KbWait([],2);
+
+
+if lastBlock == 0
+    Screen('TextSize', MainWindow, 36);
+    Screen('TextStyle', MainWindow, 1);
+    
+    DrawFormattedText(MainWindow, 'Remember that the faster you make correct responses, the more points you will win!\n\nPlease place your index fingers on the C and M keys\n\nand press the spacebar when you are ready to continue with the task', 'center', 'center', white, [], [], [], 1.5);
+    
+    Screen('Flip', MainWindow);
+    
+    RestrictKeysForKbCheck(KbName('Space'));   % Only accept spacebar
+    
+    KbWait([], 2);
+
+end
+
+
+Screen('Flip', MainWindow);
+
+RestrictKeysForKbCheck([KbName('c'), KbName('m')]);   % Only accept keypresses from keys C and M
+
+Screen('TextFont', MainWindow, oldFont);
+Screen('TextSize', MainWindow, oldSize);
+Screen('TextStyle', MainWindow, oldStyle);
+
+
+WaitSecs(initialPause);
+
+for ii = 1 : numMedals
+    Screen('Close', medalTex(ii));
+end
+Screen('Close', breakWindow);
+
+
+end
+
+
+
+
+function extinctionBreak(initialPause, breakDuration)
+
+global MainWindow white yellow red
+
+oldFont = Screen('TextFont', MainWindow);
+oldSize = Screen('TextSize', MainWindow);
+oldStyle = Screen('TextStyle', MainWindow);
+
+Screen('TextSize', MainWindow, 48);
+Screen('TextStyle', MainWindow, 1);
+DrawFormattedText(MainWindow, ['Time for a break.\nSit back, relax for a moment!\nYou will be able to carry on in ', num2str(breakDuration),' seconds.'], 'center', 200, yellow, [], [], [], 1.5);
+Screen('TextStyle', MainWindow, 1);
+DrawFormattedText(MainWindow, 'REMEMBER: YOU WILL NOT WIN ANY POINTS IN THE NEXT BLOCK,\nBUT YOU SHOULD STILL RESPOND AS QUICKLY AND ACCURATELY\nAS YOU CAN.', 'center', 500, white, [], [], [], 1.5);
+Screen('Flip', MainWindow, [], 1);
+Screen('TextSize', MainWindow, 40);
+Screen('TextStyle', MainWindow, 0);
+WaitSecs(breakDuration);
+DrawFormattedText(MainWindow, 'Press any key when you are ready to continue', 'center', 900, white);
+Screen('Flip', MainWindow);
+
+RestrictKeysForKbCheck([]); % Re-enable all keys
+KbWait([],2);
+
+Screen('TextSize', MainWindow, 36);
+Screen('TextStyle', MainWindow, 1);
+DrawFormattedText(MainWindow, 'Please place your index fingers on the C and M keys\n\nand press the spacebar when you are ready to continue with the task', 'center', 'center', white, [], [], [], 1.5);
+
+Screen('Flip', MainWindow);
+
+RestrictKeysForKbCheck(KbName('Space'));   % Only accept spacebar
+
+KbWait([], 2);
+Screen('Flip', MainWindow);
+
+RestrictKeysForKbCheck([KbName('c'), KbName('m')]);   % Only accept keypresses from keys C and M
+
+Screen('TextFont', MainWindow, oldFont);
+Screen('TextSize', MainWindow, oldSize);
+Screen('TextStyle', MainWindow, oldStyle);
+
+WaitSecs(initialPause);
+
+
+end
